@@ -14,9 +14,12 @@ output:
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## R Markdown
+## Practical 1 Statistics
+#1.	Convert variables "y" and "gender" to factor variables
+#2.	Define the labels for variables "y" and "gender".
 
 
+We first open the dataset, in this case bladder.1.txt:
 ```{r chunk2,tidy=TRUE}
 rm(list=ls())
 setwd("~/UNI/Master/Estadistica/Task 2 practice statistics-20191117")
@@ -24,8 +27,7 @@ bladder <- read.csv(file = "bladder.1.txt",header = TRUE,sep = "")
 knitr::kable(head(bladder,n = 5),caption = "Bladder DataSet")
 ```
 
-AAA
-
+Then we convert "y" and "gender" to factor, using this code:
 ```{r chunk3}
 bladder$y <- factor(bladder$y, levels = c(0,1),labels = c("control", "case"))
 bladder$gender <- factor(bladder$gender, levels = c(1,2), labels = c("male","female"))
@@ -33,7 +35,9 @@ knitr::kable(head(bladder,n = 5),caption = "Bladder DataSet with y and gender as
 
 ```
 
-AAA
+#3.	Build a frequency table for "y" that contains, both, the absolute and the relative frequencies. The same for "gender".
+
+First the tables for variable "y":
 
 ```{r chunk4}
 freq.y <- table(bladder$y)  #absolute frequency
@@ -44,6 +48,7 @@ totfreq.y <- cbind(freq.y,relfreq.y)   #unite both tables
 totfreq.y
 ```
 
+Then the tables for variable "gender":
 
 ```{r chunk5}
 freq.gen <- table(bladder$gender)  #absolute frequency
@@ -53,26 +58,59 @@ relfreq.gen
 totfreq.gen <- cbind(freq.gen,relfreq.gen)   #unite both tables
 totfreq.gen
 ```
+
+#4.	Plot gene1 levels as a function of "gender":
+
 ```{r chunk6}
 plot(bladder$gender, bladder$gene1,xlab="Gender",ylab="Gene1 Expression",
      main="Gene1 Expression Levels as a function of gender")
 ```
+
+#5.	Test the normality of the expression levels of the 20 genes (use function apply). How many genes are not normally distributed and which are these genes?
+
+We test the normality using the `shapiro.test` function:
+
 ```{r chunk7}
 pval <- do.call(rbind, lapply(bladder[4:23], function(x) shapiro.test(x)[c("p.value")]))
-nonorm <- (pval<0.05)
+nonorm <- (pval<0.05) #Selecting those with p.value < 0.05
 nonorm <- subset(nonorm, nonorm == "TRUE")
 nonorm
 ```
+
+We select the p-values lower than `0.05`, wich is our confidence interval. For those genes that have this lower p-value, we reject the null hypothesis and they will not be normally distributed. The rest of the genes we cannot reject the null hypothesis. The not normally distributed genes are 2 genes: `gene8`and `gene18`. 
+
+#6.	Test whether mean expression levels of `gene1` and `gene2` are equal. Note: this is a test for equality of means with paired samples. This test is performed by computing the difference of the two variables (gene1-gene2) and testing whether the mean of the difference is equal to zero.
+
+As the note tells us, we first have to compute the difference of the two variables due to them being paired, and then we perform a `t.test` for the equality of two means:
+
 ```{r chunk8}
 diff <- bladder$gene1-bladder$gene2
 t.test(diff,mu = 0)
 ```
-```{r chunk9}
+
+We obtain a p-value of `0.9898`, which is greater than `0.05`. Due to this, we cannot reject the null hypothesis and we assume the mean expression levels of `gene1` and `gene2` are equal.
+
+#7.	Test if the mean expression levels of gene1 are equal between cases and controls.
+
+To do this, we first have to know if the variances are equal or not, because we will do different tests depending on this information. The test for detecting this equality of variances is `var.test`:
+
+```{r chunk9, tidy=TRUE}
 var.test(bladder$gene1~bladder$y)
+```
+
+The p-value the `var.test`provides us with is `0.7906`,which is greater than our confidence interval and so we cannot reject the null hypothesis and we assume the relation between variances from variables `gene1` and `y` is equal to 1. 
+
+Following the last sentence, we now know which kind of equality test we can perform, a Student's `t.test`:
+
+```{r chunk10}
 t.test(bladder$gene1~bladder$y, var.equal=T)
 ```
-```{r chunk10}
 
+The result of this test is a p-value of `0.4615`,which is greater than our confidence interval. With this, we cannot reject the null hypothesis and we assume the difference in means is equal to zero betwenn these two variables.
+
+#8.	Obtain a 95% bootstrap confidence interval for the 20th percentile of gene1: 
+
+```{r chunk11}
 library(boot)
 bootfun<-function(data,N){
   quant_20 <- NULL
@@ -89,7 +127,21 @@ confidn
 quantile(bladder$gene1,.2)
 ```
 ```{r chunk11}
-#Hecho en un ejemplo?
+bootfun_null<-function(data,N){
+  data_s <- sample(data)
+  quant_20 <- NULL
+  for (i in 1:N) {
+    newsample <- sample(data_s,length(data_s),replace = T)
+    quant_20 <- c(quant_20, quantile(newsample,probs = 0.2))
+  }
+  return(quant_20)  
+}
+
+boot20perm <- bootfun_null(bladder$gene1,10000)
+hist(boot20perm)
+p.value<-(sum(boot20perm>boot20)+1)/(length(boot20perm)+1)
+p.value
+
 ```
 ```{r chunk12}
 chisq.test(x = bladder$gender,y = bladder$y)
