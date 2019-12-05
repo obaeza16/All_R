@@ -1,6 +1,6 @@
 ---
 title: "Practical Exercises Statistics"
-author: "Óscar Baeza Francisoud"
+author: "Oscar Baeza Francisoud"
 date: "28/11/2019"
 output:
   html_document:
@@ -126,6 +126,9 @@ confidn <- c(quantile(boot20,0.025),quantile(boot20,0.975))
 confidn
 quantile(bladder$gene1,.2)
 ```
+
+#9.	Contrast using a permutation test whether the 20th percentile of gene1 for male and female are equal:
+
 ```{r chunk11}
 bootfun_null<-function(data,N){
   data_s <- sample(data)
@@ -141,25 +144,38 @@ boot20perm <- bootfun_null(bladder$gene1,10000)
 hist(boot20perm)
 p.value<-(sum(boot20perm>boot20)+1)/(length(boot20perm)+1)
 p.value
-
 ```
+
+As the pvalue is bigger than 0.05, we cannot reject the null hypothesis and we know that the 20th percentile of gene1 for male and female are equal.
+
+#10.	Perform a nonparametric test for association of gender and the risk of disease. Provide the OR (change the levels of "gender" if necessary in order that the given OR is larger than 1)
+
+We will perform a `chisq.test` to test this hypothesis:
 ```{r chunk12}
 chisq.test(x = bladder$gender,y = bladder$y)
+```
+The pvalue is bigger than 0.05, so we cannot reject the null and we know that gender and the risk of disease is not associated.
+
+To provide the Odds Ratio, we will first use the function `oddsratio` from package epitools, and then the more manual way by doing the exponential of the coefficient of the linera model:
+```{r chunk13}
+install.packages("epitools")
+library(epitools)
+table_OR <- table(bladder$gender,bladder$y)
+table_OR
+oddsratio(table_OR)
+#The OR is 1.263
+#No te sentit ja que no estan associades
 
 gen.dis.ass <- glm(bladder$gender~bladder$y, family=binomial()) 
 gen.dis.ass
 summary(gen.dis.ass)
 exp(summary(gen.dis.ass)$coefficients[2,1])
-#The OR is 1.263
-#No te sentit ja que no estan associades
-
-tableOR<-table(bladder$gender,bladder$y)
-tableOR
-oddsratio<-231*84/(226*68)
-oddsratio
-#We confirm the OR found before
+#We confirm the OR.
 ```
-```{r chunk13}
+Even though we have and OR of 1.262 for females vs males, it is caused by other variables, not gender, that are associated with the disease and get confused by gender.
+
+#11.	Explore for possible relationship between methylation and gene expression:
+```{r chunk14}
 meth.gene.ass <- glm(bladder$methyl~bladder$gene1+bladder$gene2+bladder$gene3
                      +bladder$gene4+bladder$gene5+bladder$gene6+bladder$gene7
                      +bladder$gene8+bladder$gene9+bladder$gene10+bladder$gene11
@@ -168,7 +184,10 @@ meth.gene.ass <- glm(bladder$methyl~bladder$gene1+bladder$gene2+bladder$gene3
                      +bladder$gene20, family=binomial())
 summary(meth.gene.ass)
 ```
-```{r chunk14}
+We can see on the pvalue colummn of the summary of the linear model between methylation and gene expression that only gene expresssion for gene20 is related with methylation. This is the only significant pvalue, so for this gene we reject the null hypothesis and we can say that methylation influences the expression of gene2. For the rest of genes we cannot reject the null hypothesis and so methylation would do nothing on the gene expression.
+
+#12.	Identify genes that are related to the risk of bladder cancer using a multivariate logistic regression model with stepwise variable selection. Denote the selected model as "best.model". Interpret the obtained model.
+```{r chunk15}
 dis.gene.ass <- glm(bladder$y~bladder$gene1+bladder$gene2+bladder$gene3
                     +bladder$gene4+bladder$gene5+bladder$gene6+bladder$gene7
                     +bladder$gene8+bladder$gene9+bladder$gene10+bladder$gene11
@@ -186,6 +205,7 @@ best.model <- glm(bladder$y~bladder$gene3+bladder$gene5+bladder$gene8+
 summary(best.model)
 ```
 ```{r chunk15}
+install.packages("ROCR")
 library(ROCR)
 lp<-best.model$linear.predictors
 pred <- prediction(-lp, bladder$y)

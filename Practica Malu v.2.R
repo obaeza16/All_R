@@ -1,9 +1,10 @@
 ## TASK 2 SCRIPT ##
 
 rm(list=ls())
-setwd("~/UNI/Master/Estadistica/Task 2 practice statistics-20191117")
+setwd("D:/Master/All_R-master/All_R-master")
 bladder <- read.csv(file = "bladder.1.txt",header = TRUE,sep = "")
 head(bladder,n = 3)
+options(digits = 4)
 
 #1.	Convert variables "y" and "gender" to factor variables
 #2.	Define the labels for variables "y" and "gender".
@@ -162,6 +163,7 @@ summary(best.model)
 
 # a.	Apparent validation of "best.model" using the same data that was used for model building.
 
+install.packages("ROCR")
 library(ROCR)
 lp<-best.model$linear.predictors
 pred <- prediction(-lp, bladder$y)
@@ -251,6 +253,5 @@ plot(hclust(dist(data16,method="euclidian"),method="ward.D2"))
 plot(hclust(dist(data16,method="euclidian"),method="average"))
 
 kmeans3<-kmeans(data16,3)
-
 plot(data16, col = kmeans3$cluster)
 points(kmeans3$centers,col = 1:3, pch = 8, cex=2)
